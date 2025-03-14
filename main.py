@@ -258,6 +258,22 @@ class Minesweeper:
                 if mine_count > 0:
                     self.board[row][col] = str(mine_count)
     
+    def load_images(self):
+        # Load all game images
+        try:
+            self.images['covered'] = tk.PhotoImage(file='assets/cell_covered.gif')
+            self.images['uncovered'] = tk.PhotoImage(file='assets/cell_uncovered.gif')
+            self.images['mine'] = tk.PhotoImage(file='assets/mine.gif')
+            self.images['flag'] = tk.PhotoImage(file='assets/flag.gif')
+            self.images['wrong'] = tk.PhotoImage(file='assets/wrong_mine.gif')
+            
+            # Load number images
+            for i in range(1, 9):
+                self.images[str(i)] = tk.PhotoImage(file=f'assets/number_{i}.gif')
+        except Exception as e:
+            print(f"Error loading images: {e}")
+            messagebox.showerror("Error", "Failed to load game images. Using text mode.")
+    
     def create_buttons(self):
         rows, cols = DIFFICULTY[self.difficulty]['rows'], DIFFICULTY[self.difficulty]['cols']
         self.button_frame = tk.Frame(self.master)
@@ -520,4 +536,5 @@ class StartScreen:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    start_screen = StartScreen(root)
     root.mainloop()
