@@ -272,6 +272,21 @@ class Minesweeper:
                 button.bind('<Button-3>', lambda e, r=row, c=col: self.toggle_flag(r, c))
                 self.buttons[(row, col)] = button
 
+    def toggle_flag(self, row, col):
+        if self.game_over or self.revealed[row][col]:
+            return
+        
+        if not self.flagged[row][col]:
+            if self.flags_placed < DIFFICULTY[self.difficulty]['mines']:
+                self.flagged[row][col] = True
+                self.flags_placed += 1
+                self.buttons[(row, col)].config(image=self.images['flag'])
+        else:
+            self.flagged[row][col] = False
+            self.flags_placed -= 1
+            self.buttons[(row, col)].config(image=self.images['covered'])
+        
+        self.mine_counter_label.config(text=f"Mines: {DIFFICULTY[self.difficulty]['mines'] - self.flags_placed}")
         
     def reveal_cell(self, row, col):
         if self.game_over or self.revealed[row][col] or self.flagged[row][col]:
@@ -331,8 +346,6 @@ class Minesweeper:
                 if self.board[row][col] != '*' and not self.revealed[row][col]:
                     return False
         return True
-
-
 
 
 
