@@ -349,6 +349,175 @@ class Minesweeper:
 
 
 
+class StartScreen:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Minesweeper - Main Menu")
+        self.master.geometry("400x500")
+        self.master.resizable(False, False)
+        self.master.configure(bg='#f0f0f0')  # Light gray background
+        
+        # Initialize high scores
+        self.high_scores = {diff: [] for diff in DIFFICULTY.keys()}
+        try:
+            with open('highscores.json', 'r') as f:
+                self.high_scores.update(json.load(f))
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.save_high_scores()
+        
+        # Title
+        title_frame = tk.Frame(master, pady=30, bg='#f0f0f0')
+        title_frame.pack(fill='x')
+        title_label = tk.Label(title_frame, text="MINESWEEPER", 
+                              font=("Arial", 24, "bold"),
+                              bg='#f0f0f0', fg='#333333')
+        title_label.pack()
+        
+        # Main buttons frame
+        button_frame = tk.Frame(master, bg='#f0f0f0')
+        button_frame.pack(expand=True, fill='both', padx=50)
+        
+        # Difficulty frame
+        diff_frame = tk.LabelFrame(button_frame, text="Select Difficulty", 
+                                  font=("Arial", 12), bg='#f0f0f0')
+        diff_frame.pack(fill='x', pady=20)
+        
+        self.difficulty = tk.StringVar()
+        self.difficulty.set("Intermediate")  # Set default difficulty
+        
+        for diff in DIFFICULTY.keys():
+            tk.Radiobutton(diff_frame, text=diff, variable=self.difficulty, 
+                          value=diff, font=("Arial", 11), bg='#f0f0f0').pack(pady=5)
+        
+        # Action buttons
+        style = ttk.Style()
+        style.configure('Large.TButton', font=("Arial", 12), padding=10)
+        style.configure('TButton', font=("Arial", 10))
+        
+        ttk.Button(button_frame, text="New Game", style='Large.TButton',
+                   command=self.start_game).pack(fill='x', pady=10)
+        ttk.Button(button_frame, text="High Scores", style='Large.TButton',
+                   command=self.show_high_scores).pack(fill='x', pady=10)
+        ttk.Button(button_frame, text="Exit", style='Large.TButton',
+                   command=self.on_game_close).pack(fill='x', pady=10)
+        
+        # Center the window
+        self.master.update_idletasks()
+        width = self.master.winfo_width()
+        height = self.master.winfo_height()
+        x = (self.master.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.master.winfo_screenheight() // 2) - (height // 2)
+        self.master.geometry(f'+{x}+{y}')
+    
+    def load_high_scores(self):
+        try:
+            with open('highscores.json', 'r') as f:
+                self.high_scores = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.high_scores = {diff: [] for diff in DIFFICULTY.keys()}
+            self.save_high_scores()
+    
+    def save_high_scores(self):
+        with open('highscores.json', 'w') as f:
+            json.dump(self.high_scores, f)
+    
+    def format_time(self, seconds):
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return f"{minutes:02d}:{seconds:02d}"
+    
+    def show_high_scores(self):
+        # Get the parent window (either game window or start screen)
+        parent = self.master
+        
+        scores_window = tk.Toplevel(parent)
+        scores_window.title("High Scores")
+        scores_window.transient(parent)
+        scores_window.grab_set()
+        scores_window.geometry("300x400")
+        scores_window.resizable(False, False)
+
+        # Style configuration
+        style = ttk.Style()
+        style.configure('Scores.TNotebook', background='#f0f0f0')
+        style.configure('Scores.TFrame', background='#f0f0f0')
+
+        notebook = ttk.Notebook(scores_window, style='Scores.TNotebook')
+        notebook.pack(padx=10, pady=10, expand=True, fill='both')
+
+        for difficulty in DIFFICULTY.keys():
+            frame = ttk.Frame(notebook, style='Scores.TFrame')
+            notebook.add(frame, text=difficulty)
+            frame.configure(padding=10)
+
+            scores = self.high_scores.get(difficulty, [])
+            if not scores:
+                ttk.Label(frame, text="No scores yet!", 
+                         font=("Arial", 11)).pack(pady=20)
+            else:
+                # Sort scores and take top 10
+                sorted_scores = sorted(scores)[:10]
+                for i, score in enumerate(sorted_scores, 1):
+                    formatted_time = self.format_time(score)
+                    ttk.Label(frame, text=f"{i}. {formatted_time}", 
+                             font=("Arial", 11)).pack(pady=2)
+
+        close_button = ttk.Button(scores_window, text="Close", 
+                                 command=scores_window.destroy)
+        close_button.pack(pady=10)
+
+        # Center the scores window
+        scores_window.update_idletasks()
+        width = scores_window.winfo_width()
+        height = scores_window.winfo_height()
+        x = (parent.winfo_rootx() + (parent.winfo_width() // 2) - (width // 2))
+        y = (parent.winfo_rooty() + (parent.winfo_height() // 2) - (height // 2))
+        scores_window.geometry(f'+{x}+{y}')
+        
+        # Ensure the window is visible and focused
+        scores_window.lift()
+        scores_window.focus_force()
+    
+    def start_game(self):
+        try:
+            difficulty = self.difficulty.get()
+            
+            # Create and configure game window
+            game_window = tk.Toplevel(self.master)
+            game_window.title(f"Minesweeper - {difficulty}")
+            game_window.resizable(False, False)
+            
+            # Create the game instance
+            game = Minesweeper(game_window, difficulty, 
+                             self.high_scores, self)
+            
+            # Configure window closing
+            def on_game_close():
+                if game.timer_running:
+                    game.timer_running = False
+                game_window.destroy()
+                self.master.deiconify()
+            
+            game_window.protocol("WM_DELETE_WINDOW", on_game_close)
+            
+            # Hide the start screen
+            self.master.withdraw()
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"Failed to start game: {str(e)}"
+            print(f"{error_msg}\n{traceback.format_exc()}")
+            messagebox.showerror("Error", error_msg)
+            if 'game_window' in locals():
+                game_window.destroy()
+            self.master.deiconify()
+    
+    def on_game_close(self):
+        if messagebox.askokcancel("Quit", "Do you want to exit Minesweeper?"):
+            self.master.destroy()
+
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.mainloop()
