@@ -48,7 +48,3 @@ This enhanced version of Minesweeper features:
 - Mine Counter: Shows remaining unflagged mines
 - High Scores: Tracks best times for each difficulty
 - Custom Sprites: Visual indicators for mines, flags, and numbers
-
-## License
-
-Feel free to use and modify this code for your own projects.
